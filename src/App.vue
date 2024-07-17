@@ -1,12 +1,12 @@
 <script setup lang="ts">
+import MainView from "@/containers/MainView.vue";
 </script>
 
 <template>
   <div>
-    111
+    <MainView />
   </div>
 </template>
 
 <style scoped>
-
 </style>
