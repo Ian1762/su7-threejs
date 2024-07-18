@@ -2,6 +2,10 @@
 import { reactive, ref, onMounted } from "vue";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+// import { GLTFLoader } from "../lib/GLTFLoader.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
+
 const sceneRef = ref();
 let scene: THREE.Scene;
 let width: number;
@@ -34,11 +38,50 @@ const addLight = () => {
   pointLight.position.set(2, 2, 2);
   scene.add(pointLight);
 };
+const addAxesHelper = () => {
+  const axesHelper = new THREE.AxesHelper(5);
+  scene.add(axesHelper);
+};
 const addMesh = () => {
   const geometry = new THREE.BoxGeometry(1, 1, 1);
   const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
   const cube = new THREE.Mesh(geometry, material);
   scene.add(cube);
+};
+const addCar = () => {
+  // Instantiate a loader
+  const loader = new GLTFLoader();
+
+  // 设置MeshoptDecoder
+  loader.setMeshoptDecoder(MeshoptDecoder);
+
+  //   const dracoLoader = new DRACOLoader();
+  // dracoLoader.setDecoderPath( '/examples/jsm/libs/draco/' );
+  // loader.setDRACOLoader( dracoLoader );
+
+  loader.load(
+    // resource URL
+    "mesh/sm_car.gltf",
+    // "/1.0.2/mesh/sm_car.glb",
+    // called when the resource is loaded
+    function (gltf) {
+      scene.add(gltf.scene);
+
+      gltf.animations; // Array<THREE.AnimationClip>
+      gltf.scene; // THREE.Group
+      gltf.scenes; // Array<THREE.Group>
+      gltf.cameras; // Array<THREE.Camera>
+      gltf.asset; // Object
+    },
+    // called while loading is progressing
+    function (xhr) {
+      console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
+    },
+    // called when loading has errors
+    function (error) {
+      console.log("An error happened", error);
+    }
+  );
 };
 const animate = () => {
   requestAnimationFrame(animate);
@@ -56,8 +99,11 @@ onMounted(() => {
   addOrbitControls();
   // 添加灯光
   addLight();
+  // 添加坐标辅助
+  addAxesHelper();
   // 添加物体
-  addMesh();
+  // addMesh();
+  addCar();
   // 持续动画
   animate();
 });
