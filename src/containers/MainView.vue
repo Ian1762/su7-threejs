@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { reactive, ref, onMounted } from "vue";
 import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
+import {
+  OrbitControls,
+  GLTFLoader,
+  DRACOLoader,
+} from "three/examples/jsm/Addons";
+import { GUI } from "three/examples/jsm/libs/lil-gui.module.min.js";
+
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 
 const sceneRef = ref();
@@ -13,6 +17,16 @@ let height: number;
 let renderer: THREE.WebGLRenderer;
 let camera: THREE.PerspectiveCamera;
 let controls: OrbitControls;
+let car, carBody;
+const guiObj = {
+  Fullscreen: function () {
+    document.body.requestFullscreen();
+  },
+  ExitFullscreen: function () {
+    document.exitFullscreen();
+  },
+  autoRotate: false,
+};
 const initScene = () => {
   scene = new THREE.Scene();
   width = sceneRef.value.clientWidth;
@@ -107,16 +121,32 @@ const addCar = () => {
     "mesh/sm_car.gltf",
     // called when the resource is loaded
     function (gltf) {
-      let object = gltf.scene; // 获取模型的场景
+      console.log("gltf", gltf);
 
-      let rotate = () => {
-        object.rotation.y -= 0.001;
-        requestAnimationFrame(rotate);
-      };
-      rotate(); // 为模型添加自动旋转
+      car = gltf.scene; // 获取模型的场景
 
-      scene.add(object);
+      car.traverse((child) => {
+        if (child.isMesh) {
+          // console.log(child);
+        }
+        // body Object_37009 车身
+        // Object_37009_1 body_smoothblack 车顶
+        // ChePai 车牌
+        // dingbuleida 顶部雷达
+        // DiPan interior YuGua 底盘+车内+雨刷
+        // DiPan001 车顶
+        // Object_31006 车身（除去车顶）
+        // Object_31006_1 车顶
+        // ShaChe 刹车
+        // Wheel001 车轮
+        if (child.name !== "body" || !child.isMesh) return;
+        carBody = child;
+        
+        // carBody.material.color.set("red");
+      });
 
+      scene.add(car);
+      addGui();
       gltf.animations; // Array<THREE.AnimationClip>
       gltf.scene; // THREE.Group
       gltf.scenes; // Array<THREE.Group>
@@ -133,9 +163,47 @@ const addCar = () => {
     }
   );
 };
+const addGui = () => {
+  // 创建GUI
+  const gui = new GUI();
+  // 添加按钮
+  gui.add(guiObj, "Fullscreen").name("全屏");
+  gui.add(guiObj, "ExitFullscreen").name("退出全屏");
+  gui.add(guiObj, "autoRotate").name("自动旋转");
+  // 控制立方体的位置
+  const folder = gui.addFolder("立方体位置");
+  folder
+    .add(carBody.position, "x")
+    .min(-10)
+    .max(10)
+    .step(1)
+    .name("x轴位置")
+    .onChange(function (value) {
+      console.log("位置", value);
+    });
+  folder
+    .add(carBody.position, "y")
+    .min(-10)
+    .max(10)
+    .step(1)
+    .name("y轴位置")
+    .onFinishChange(function (value) {
+      console.log("结束", value);
+    });
+  folder.add(carBody.position, "z").min(-10).max(10).step(1).name("z轴位置");
+
+  // gui.add(parentMaterial, "wireframe").name("父元素线框模式");
+
+  gui
+    .addColor(carBody.material, "color")
+    .name("车身颜色")
+    .onChange(function (value) {
+      carBody.material.color.set(value);
+    });
+};
 const animate = () => {
   requestAnimationFrame(animate);
-
+  guiObj.autoRotate && (car.rotation.y -= 0.001);
   controls.update();
 
   renderer.render(scene, camera);
